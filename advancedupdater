@@ -33,29 +33,29 @@ function download(file, name)
 	end
 end
 
+function update(file, path)
+	if fs.exists(file) then
+		fs.delete(file)
+	end
+	download(file, path)
+end
+
 function updatePrograms(force, programs)
 	print("Checking for Updates...")
 	if download("config", "tmpconfig") then
+		tmpconfig = loadTable("tmpconfig")
 		if fs.exists("apconfig") then
 			config = loadTable("apconfig")
-			tmpconfig = loadTable("tmpconfig")
 			for key,value in pairs(tmpconfig) do
-				if tmpconfig[key]["version"] > config[key]["version"] then
-					print("Updating" .. key .. "version " .. " to " ..)
-					if fs.exists(key) then
-						fs.delete(key)
-					end
-					download(key, tmpconfig[key]["path"])
+				if force or (tmpconfig[key]["version"] > config[key]["version"]) then
+					print("Updating " .. key .. " version " .. config[key]["version"] .. " to " .. tmpconfig[key]["version"])
+					update(key, tmpconfig[key]["path"])			
 				end
 			end
 		else
 			print("No config file was found.")
-			config = loadTable("apconfig")
-			for key,value in pairs(config) do
-				if fs.exists(key) then
-					fs.delete(key)
-				end
-				download(key, config[key]["path"])
+			for key,value in pairs(tmpconfig) do
+				print("Downloading " .. key .. " version " .. tmpconfig[key]["version"])
 			end
 		end
 		fs.delete("apconfig")
@@ -67,7 +67,18 @@ function updatePrograms(force, programs)
 end
 
 -- RUN
-args = {...}
-if #args == 0 then
+local args = {...}
+local force = false
+local programsToUpdate = nil
+for arg in args do
+	if arg == "force" then
+		force = true
+	else
+		if not programsToUpdate then
+			programsToUpdate = {}
+		end
+		programsToUpdate[#programsToUpdate + 1] = arg
+	end
+end
 
-updatePrograms()
+updatePrograms(force, programsToUpdate)
